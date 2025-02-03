@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Image Captioning</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Tap to Capture & Generate Caption</h2>
+        <video id="camera" autoplay playsinline></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+        <button id="capture">Capture & Upload</button>
+        <p id="caption"></p>
+    </div>
+
+    <script>
+        const camera = document.getElementById("camera");
+        const canvas = document.getElementById("canvas");
+        const captureBtn = document.getElementById("capture");
+        const captionText = document.getElementById("caption");
+
+        // Access camera with correct aspect ratio
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => {
+                camera.srcObject = stream;
+            })
+            .catch(err => console.error("Error accessing camera:", err));
+
+        // Capture and upload image
+        captureBtn.addEventListener("click", () => {
+            const context = canvas.getContext("2d");
+            canvas.width = camera.videoWidth;
+            canvas.height = camera.videoHeight;
+            context.drawImage(camera, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append("image", blob, "captured.jpg");
+
+                fetch("/upload", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    captionText.innerText = "Caption: " + data.caption;
+                })
+                .catch(error => console.error("Error:", error));
+            }, "image/jpeg");
+        });
+    </script>
+</body>
+</html>
